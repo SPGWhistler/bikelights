@@ -51,6 +51,10 @@ unsigned long hpPreviousMillis = 0;
 unsigned int hpDelay = 50;
 boolean brakesOn = false;
 boolean headLightOn = false;
+unsigned long gfPreviousMillis = 0;
+unsigned int gfDelay = 50;
+unsigned long tlPreviousMillis = 0;
+unsigned int tlDelay = 50;
 
 void setup() {
   Serial.begin(115200);
@@ -71,7 +75,7 @@ void setup() {
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
+SimplePatternList gPatterns = { off, rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
@@ -105,6 +109,7 @@ void readButtons() {
           case 3: //horn
             break;
           case 4: //toggle pattern
+            nextPattern();
             break;
           case 5: //headlight
             headLightOn = true;
@@ -173,18 +178,27 @@ void doAnimationLoop() {
 }
 
 void doGroundEffectAnimation() {
-  if (strips[0].writable) {
+  if (currentMillis - gfPreviousMillis >= gfDelay && strips[0].writable) {
     // Call the current pattern function once, updating the 'leds' array
     gPatterns[gCurrentPatternNumber]();
     // do some periodic updates
     EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-    EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
+    //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
+    gfPreviousMillis = currentMillis;
   }
 }
 
 void doTailLightsAnimation() {
-  if (strips[2].writable == true) {
-    //Example for only writing to a strip if its not locked
+  if (currentMillis - tlPreviousMillis >= tlDelay) {
+    if (strips[2].writable && strips[3].writable) {
+      fadeToBlackBy( strips[2].strip, strips[2].endIndex, 40);
+      int pos = beatsin16( 13, strips[2].startIndex, strips[2].endIndex - 1 );
+      strips[2].strip[pos] += CRGB::Red;
+      fadeToBlackBy( strips[3].strip, strips[3].endIndex, 40);
+      int pos2 = beatsin16( 13, strips[3].startIndex, strips[3].endIndex - 1 );
+      strips[3].strip[pos2] += CRGB::Red;
+    }
+    tlPreviousMillis = currentMillis;
   }
 }
 
@@ -331,6 +345,11 @@ void nextPattern()
 {
   // add one to the current pattern number, and wrap around at the end
   gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
+}
+
+void off()
+{
+  solidColor(strips[0], CRGB::Black);
 }
 
 void rainbow() 
