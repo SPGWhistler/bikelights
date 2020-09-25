@@ -39,6 +39,9 @@ stripProps strips[7] = {
   { strip3, 0, 14, 1, true } //6 rightFront
 };
 
+#define hornPin 13
+
+boolean hornOn = false;
 boolean updated = false;
 int debounceDelay = 50;
 unsigned long currentMillis = 0;
@@ -61,6 +64,12 @@ void setup() {
   for (int i = 0; i < (sizeof(buttons) / sizeof(buttons[0])); i++) {
     pinMode(buttons[i].pin, INPUT_PULLUP);
   }
+  pinMode(A0, OUTPUT);
+  pinMode(A1, OUTPUT);
+  pinMode(A2, OUTPUT);
+  pinMode(A3, OUTPUT);
+  pinMode(A4, OUTPUT);
+  pinMode(A5, OUTPUT);
   FastLED.addLeds<SK9822, mainLedPin, 11, BGR, DATA_RATE_MHZ(12)>(strip1, 92);
   /* TODO change when using on bike
   FastLED.addLeds<WS2812, mainLedPin, GRB>(strip1, 92);
@@ -84,6 +93,15 @@ void loop() {
   currentMillis = millis();
   readButtons();
   doAnimationLoop();
+  doHorn();
+}
+
+void doHorn() {
+  if (hornOn) {
+    tone(hornPin, 1000);
+  } else {
+    noTone(hornPin);
+  }
 }
 
 void readButtons() {
@@ -107,12 +125,15 @@ void readButtons() {
             Serial.println("turning right blinker on...");
             break;
           case 3: //horn
+            hornOn = true;
+            Serial.println("turn horn on...");
             break;
           case 4: //toggle pattern
             nextPattern();
             break;
           case 5: //headlight
             headLightOn = true;
+            digitalWrite(A2, HIGH);
             Serial.println("turning headlight on...");
             break;
           case 6: //?
@@ -127,18 +148,23 @@ void readButtons() {
             break;
           case 1: //left blinker
             leftBlinkerOn = false;
+            digitalWrite(A0, LOW);
             Serial.println("turning left blinker off...");
             break;
           case 2: //right blinker
             rightBlinkerOn = false;
+            digitalWrite(A1, LOW);
             Serial.println("turning right blinker off...");
             break;
           case 3: //horn
+            hornOn = false;
+            Serial.println("turn horn on...");
             break;
           case 4: //toggle pattern
             break;
           case 5: //headlight
             headLightOn = false;
+            digitalWrite(A2, LOW);
             Serial.println("turning headlight off...");
             break;
           case 6: //?
@@ -265,16 +291,19 @@ void doBlinkerAnimation() {
         Serial.println("left blinker on");
         solidColor(strips[1], CRGB::Red);
         solidColor(strips[2], CRGB::Red);
+        digitalWrite(A0, HIGH);
       } else {
         Serial.println("left blinker off");
         solidColor(strips[1], CRGB::Black);
         solidColor(strips[2], CRGB::Black);
+        digitalWrite(A0, LOW);
       }
     } else if (leftBlinkerOn == false && strips[1].writable == false && brakesOn == false) {
       solidColor(strips[1], CRGB::Black);
       solidColor(strips[2], CRGB::Black);
       strips[1].writable = true;
       strips[2].writable = true;
+      digitalWrite(A0, LOW);
     }
     if (rightBlinkerOn == true) {
       strips[3].writable = false;
@@ -283,16 +312,19 @@ void doBlinkerAnimation() {
         Serial.println("right blinker on");
         solidColor(strips[3], CRGB::Red);
         solidColor(strips[4], CRGB::Red);
+        digitalWrite(A1, HIGH);
       } else {
         Serial.println("right blinker off");
         solidColor(strips[3], CRGB::Black);
         solidColor(strips[4], CRGB::Black);
+        digitalWrite(A1, LOW);
       }
     } else if (rightBlinkerOn == false && strips[3].writable == false && brakesOn == false) {
       solidColor(strips[3], CRGB::Black);
       solidColor(strips[4], CRGB::Black);
       strips[3].writable = true;
       strips[4].writable = true;
+      digitalWrite(A1, LOW);
     }
     blink = !blink;
     blinkerPreviousMillis = currentMillis;
