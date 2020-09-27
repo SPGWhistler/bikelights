@@ -7,18 +7,24 @@ struct buttonProps {
   unsigned int pin;
 };
 buttonProps buttons[7] = {
-  { LOW, LOW, 0, 3 }, //brakes (reed switch)
-  { LOW, LOW, 0, 4 }, //leftBlinker (toggle)
-  { LOW, LOW, 0, 5 }, //rightBlinker (toggle)
-  { LOW, LOW, 0, 6 }, //horn (momentary)
-  { LOW, LOW, 0, 7 }, //patternToggle (momentary)
-  { LOW, LOW, 0, 8 }, //headlight (toggle)
-  { LOW, LOW, 0, 9 } //?
+  { LOW, LOW, 0, 2 }, //brakes (reed switch)
+  { LOW, LOW, 0, 6 }, //leftBlinker (toggle)
+  { LOW, LOW, 0, 3 }, //rightBlinker (toggle)
+  { LOW, LOW, 0, 4 }, //horn (momentary)
+  { LOW, LOW, 0, 5 }, //patternToggle (momentary)
+  { LOW, LOW, 0, 7 }, //headlight (toggle)
+  { LOW, LOW, 0, 8 } //?
 };
+int leftBlinkerButtonLed = A2;
+int rightBlinkerButtonLed = A5;
+int headLightButtonLed = A1;
+int patternToggleButtonLed = A3;
+int unused1ButtonLed = A0;
+int unused2ButtonLed = A4;
 
-#define mainLedPin 10
-#define leftFrontLedPin 11
-#define rightFrontLedPin 12
+#define mainLedPin 9
+#define leftFrontLedPin 10
+#define rightFrontLedPin 11
 struct stripProps {
   CRGB *strip;
   unsigned int startIndex;
@@ -39,7 +45,7 @@ stripProps strips[7] = {
   { strip3, 0, 14, 1, true } //6 rightFront
 };
 
-#define hornPin 13
+#define hornPin 12
 
 boolean hornOn = false;
 boolean updated = false;
@@ -49,7 +55,7 @@ boolean leftBlinkerOn = false;
 boolean rightBlinkerOn = false;
 boolean blink = false;
 unsigned long blinkerPreviousMillis = 0;
-unsigned int blinkerDelay = 250;
+unsigned int blinkerDelay = 100;
 unsigned long hpPreviousMillis = 0;
 unsigned int hpDelay = 50;
 boolean brakesOn = false;
@@ -58,9 +64,10 @@ unsigned long gfPreviousMillis = 0;
 unsigned int gfDelay = 50;
 unsigned long tlPreviousMillis = 0;
 unsigned int tlDelay = 50;
+unsigned long slPreviousMillis = 0;
+unsigned int slDelay = 50;
 
 void setup() {
-  Serial.begin(115200);
   for (int i = 0; i < (sizeof(buttons) / sizeof(buttons[0])); i++) {
     pinMode(buttons[i].pin, INPUT_PULLUP);
   }
@@ -70,20 +77,18 @@ void setup() {
   pinMode(A3, OUTPUT);
   pinMode(A4, OUTPUT);
   pinMode(A5, OUTPUT);
-  FastLED.addLeds<SK9822, mainLedPin, 11, BGR, DATA_RATE_MHZ(12)>(strip1, 92);
-  /* TODO change when using on bike
+  //FastLED.addLeds<SK9822, mainLedPin, 11, BGR, DATA_RATE_MHZ(12)>(strip1, 92);
   FastLED.addLeds<WS2812, mainLedPin, GRB>(strip1, 92);
   FastLED.addLeds<WS2812, leftFrontLedPin, GRB>(strip2, 15);
   FastLED.addLeds<WS2812, rightFrontLedPin, GRB>(strip3, 15);
-  */
-  FastLED.setMaxPowerInMilliWatts(500);
+  //FastLED.setMaxPowerInMilliWatts(500);
   allOff();
   FastLED.show();
-  Serial.println("Ready.");
+  delay(3000);
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
-typedef void (*SimplePatternList[])();
+typedef void (*SimplePatternList[])(stripProps &strip);
 SimplePatternList gPatterns = { off, rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
@@ -114,27 +119,22 @@ void readButtons() {
         switch (i) {
           case 0: //brakes
             brakesOn = true;
-            Serial.println("turning brakes on...");
             break;
           case 1: //left blinker
             leftBlinkerOn = true;
-            Serial.println("turning left blinker on...");
             break;
           case 2: //right blinker
             rightBlinkerOn = true;
-            Serial.println("turning right blinker on...");
             break;
           case 3: //horn
             hornOn = true;
-            Serial.println("turn horn on...");
             break;
           case 4: //toggle pattern
             nextPattern();
             break;
           case 5: //headlight
             headLightOn = true;
-            digitalWrite(A2, HIGH);
-            Serial.println("turning headlight on...");
+            digitalWrite(headLightButtonLed, HIGH);
             break;
           case 6: //?
             break;
@@ -144,28 +144,23 @@ void readButtons() {
         switch (i) {
           case 0: //brakes
             brakesOn = false;
-            Serial.println("turning brakes off...");
             break;
           case 1: //left blinker
             leftBlinkerOn = false;
-            digitalWrite(A0, LOW);
-            Serial.println("turning left blinker off...");
+            digitalWrite(leftBlinkerButtonLed, LOW);
             break;
           case 2: //right blinker
             rightBlinkerOn = false;
-            digitalWrite(A1, LOW);
-            Serial.println("turning right blinker off...");
+            digitalWrite(rightBlinkerButtonLed, LOW);
             break;
           case 3: //horn
             hornOn = false;
-            Serial.println("turn horn on...");
             break;
           case 4: //toggle pattern
             break;
           case 5: //headlight
             headLightOn = false;
-            digitalWrite(A2, LOW);
-            Serial.println("turning headlight off...");
+            digitalWrite(headLightButtonLed, LOW);
             break;
           case 6: //?
             break;
@@ -187,7 +182,7 @@ void doAnimationLoop() {
   if (currentMillis - hpPreviousMillis >= hpDelay) {
     updated = true;
     doHeadLightAnimation();
-    doBrakesAnimation();
+    //doBrakesAnimation();
     doBlinkerAnimation();
     hpPreviousMillis = currentMillis;
   }
@@ -198,6 +193,7 @@ void doAnimationLoop() {
   */
   doGroundEffectAnimation();
   doTailLightsAnimation();
+  doSideLightsAnimation();
   if (updated) {
     FastLED.show();
   }
@@ -206,7 +202,12 @@ void doAnimationLoop() {
 void doGroundEffectAnimation() {
   if (currentMillis - gfPreviousMillis >= gfDelay && strips[0].writable) {
     // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber]();
+    gPatterns[gCurrentPatternNumber](strips[0]);
+    if (gCurrentPatternNumber == 0) {
+      digitalWrite(patternToggleButtonLed, LOW);
+    } else {
+      digitalWrite(patternToggleButtonLed, HIGH);
+    }
     // do some periodic updates
     EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
     //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
@@ -217,32 +218,55 @@ void doGroundEffectAnimation() {
 void doTailLightsAnimation() {
   if (currentMillis - tlPreviousMillis >= tlDelay) {
     if (strips[2].writable && strips[3].writable) {
+      //We can do animation...
       fadeToBlackBy( strips[2].strip, strips[2].endIndex, 40);
       int pos = beatsin16( 13, strips[2].startIndex, strips[2].endIndex - 1 );
       strips[2].strip[pos] += CRGB::Red;
       fadeToBlackBy( strips[3].strip, strips[3].endIndex, 40);
       int pos2 = beatsin16( 13, strips[3].startIndex, strips[3].endIndex - 1 );
       strips[3].strip[pos2] += CRGB::Red;
+    } else {
+      //If we cant do animation, black out any strips that are still writable.
+      if (strips[2].writable) {
+        solidColor(strips[2], CRGB::Black);
+      } else if (strips[3].writable) {
+        solidColor(strips[3], CRGB::Black);
+      }
     }
     tlPreviousMillis = currentMillis;
   }
 }
 
-//TODO Change back to 5 when on bike
+void doSideLightsAnimation() {
+  if (currentMillis - slPreviousMillis >= slDelay) {
+    if (strips[1].writable && strips[4].writable) {
+      //We can do animation...
+      gPatterns[gCurrentPatternNumber](strips[1]);
+      gPatterns[gCurrentPatternNumber](strips[4]);
+    } else {
+      //If we cant do animation, black out any strips that are still writable.
+      if (strips[1].writable) {
+        solidColor(strips[1], CRGB::Black);
+      } else if (strips[4].writable) {
+        solidColor(strips[4], CRGB::Black);
+      }
+    }
+    slPreviousMillis = currentMillis;
+  }
+}
+
 void doHeadLightAnimation() {
   if (headLightOn == true) {
-    Serial.println("headlight on");
     //Turn headlight on
-    solidColor(strips[0], CRGB::White);
+    solidColor(strips[5], CRGB::White);
     solidColor(strips[6], CRGB::White);
-    strips[0].writable = false;
+    strips[5].writable = false;
     strips[6].writable = false;
-  } else if (headLightOn == false && strips[0].writable == false) {
-    Serial.println("headlight off");
+  } else if (headLightOn == false && strips[5].writable == false) {
     //Turn headlight off (should only execute one time)
-    solidColor(strips[0], CRGB::Black);
+    solidColor(strips[5], CRGB::Black);
     solidColor(strips[6], CRGB::Black);
-    strips[0].writable = true;
+    strips[5].writable = true;
     strips[6].writable = true;
   }
 }
@@ -251,7 +275,6 @@ void doHeadLightAnimation() {
 void doBrakesAnimation() {
   if (brakesOn == true) {
     //Turn brakes on
-    Serial.println("brakes on");
     if (leftBlinkerOn == false) {
       solidColor(strips[1], CRGB::Red);
       solidColor(strips[2], CRGB::Red);
@@ -265,8 +288,8 @@ void doBrakesAnimation() {
       strips[4].writable = false;
     }
   } else if (brakesOn == false && strips[1].writable == false) {
+    //TODO This seems like a bug - if the blinker sets writable to false, we'd enter this condition...
     //Turn brakes off
-    Serial.println("brakes off");
     if (leftBlinkerOn == false) {
       solidColor(strips[1], CRGB::Black);
       solidColor(strips[2], CRGB::Black);
@@ -288,43 +311,39 @@ void doBlinkerAnimation() {
       strips[1].writable = false;
       strips[2].writable = false;
       if (blink) {
-        Serial.println("left blinker on");
         solidColor(strips[1], CRGB::Red);
         solidColor(strips[2], CRGB::Red);
-        digitalWrite(A0, HIGH);
+        digitalWrite(leftBlinkerButtonLed, HIGH);
       } else {
-        Serial.println("left blinker off");
         solidColor(strips[1], CRGB::Black);
         solidColor(strips[2], CRGB::Black);
-        digitalWrite(A0, LOW);
+        digitalWrite(leftBlinkerButtonLed, LOW);
       }
     } else if (leftBlinkerOn == false && strips[1].writable == false && brakesOn == false) {
       solidColor(strips[1], CRGB::Black);
       solidColor(strips[2], CRGB::Black);
       strips[1].writable = true;
       strips[2].writable = true;
-      digitalWrite(A0, LOW);
+      digitalWrite(leftBlinkerButtonLed, LOW);
     }
     if (rightBlinkerOn == true) {
       strips[3].writable = false;
       strips[4].writable = false;
       if (blink) {
-        Serial.println("right blinker on");
         solidColor(strips[3], CRGB::Red);
         solidColor(strips[4], CRGB::Red);
-        digitalWrite(A1, HIGH);
+        digitalWrite(rightBlinkerButtonLed, HIGH);
       } else {
-        Serial.println("right blinker off");
         solidColor(strips[3], CRGB::Black);
         solidColor(strips[4], CRGB::Black);
-        digitalWrite(A1, LOW);
+        digitalWrite(rightBlinkerButtonLed, LOW);
       }
     } else if (rightBlinkerOn == false && strips[3].writable == false && brakesOn == false) {
       solidColor(strips[3], CRGB::Black);
       solidColor(strips[4], CRGB::Black);
       strips[3].writable = true;
       strips[4].writable = true;
-      digitalWrite(A1, LOW);
+      digitalWrite(rightBlinkerButtonLed, LOW);
     }
     blink = !blink;
     blinkerPreviousMillis = currentMillis;
@@ -379,64 +398,64 @@ void nextPattern()
   gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
 }
 
-void off()
+void off(stripProps &strip)
 {
-  solidColor(strips[0], CRGB::Black);
+  solidColor(strip, CRGB::Black);
 }
 
-void rainbow() 
+void rainbow(stripProps &strip) 
 {
   // FastLED's built-in rainbow generator
-  fill_rainbow( strips[0].strip, strips[0].endIndex, gHue, 7);
+  fill_rainbow( strip.strip, strip.endIndex, gHue, 7);
 }
 
-void rainbowWithGlitter() 
+void rainbowWithGlitter(stripProps &strip) 
 {
   // built-in FastLED rainbow, plus some random sparkly glitter
-  rainbow();
-  addGlitter(80);
+  rainbow(strip);
+  addGlitter(strip, 80);
 }
 
-void addGlitter( fract8 chanceOfGlitter) 
+void addGlitter( stripProps &strip, fract8 chanceOfGlitter) 
 {
   if( random8() < chanceOfGlitter) {
-    strips[0].strip[ random16(strips[0].endIndex) ] += CRGB::White;
+    strip.strip[ random16(strip.endIndex) ] += CRGB::White;
   }
 }
 
-void confetti() 
+void confetti(stripProps &strip) 
 {
   // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( strips[0].strip, strips[0].endIndex, 10);
-  int pos = random16(strips[0].endIndex);
-  strips[0].strip[pos] += CHSV( gHue + random8(64), 200, 255);
+  fadeToBlackBy( strip.strip, strip.endIndex, 10);
+  int pos = random16(strip.endIndex);
+  strip.strip[pos] += CHSV( gHue + random8(64), 200, 255);
 }
 
-void sinelon()
+void sinelon(stripProps &strip)
 {
   // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( strips[0].strip, strips[0].endIndex, 20);
-  int pos = beatsin16( 13, 0, strips[0].endIndex - 1 );
-  strips[0].strip[pos] += CHSV( gHue, 255, 192);
+  fadeToBlackBy( strip.strip, strip.endIndex, 20);
+  int pos = beatsin16( 13, 0, strip.endIndex - 1 );
+  strip.strip[pos] += CHSV( gHue, 255, 192);
 }
 
-void bpm()
+void bpm(stripProps &strip)
 {
   // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
   uint8_t BeatsPerMinute = 62;
   CRGBPalette16 palette = PartyColors_p;
   uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < strips[0].endIndex; i++) { //9948
-    strips[0].strip[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
+  for( int i = 0; i < strip.endIndex; i++) { //9948
+    strip.strip[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
   }
 }
 
-void juggle() {
+void juggle(stripProps &strip) {
   // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( strips[0].strip, strips[0].endIndex, 20);
+  fadeToBlackBy( strip.strip, strip.endIndex, 20);
   byte dothue = 0;
   for( int i = 0; i < 8; i++) {
-    strips[0].strip[beatsin16( i+7, 0, strips[0].endIndex - 1 )] |= CHSV(dothue, 200, 255);
+    strip.strip[beatsin16( i+7, 0, strip.endIndex - 1 )] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
 }
