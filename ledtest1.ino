@@ -28,7 +28,7 @@ int unused2ButtonLed = A4;
 struct stripProps {
   CRGB *strip;
   unsigned int startIndex;
-  unsigned int endIndex;
+  unsigned int count;
   int countDirection;
   boolean writable;
 };
@@ -36,13 +36,13 @@ CRGB strip1[92];
 CRGB strip2[15];
 CRGB strip3[15];
 stripProps strips[7] = {
-  { strip1, 0, 31, 1, true }, //0 groundEffect
-  { strip1, 32, 47, 1, true }, //1 leftSide
-  { strip1, 48, 61, -1, true }, //2 leftTail
-  { strip1, 62, 75, 1, true }, //3 rightTail
-  { strip1, 76, 91, -1, true }, //4 rightSide
-  { strip2, 0, 14, 1, true }, //5 leftFront
-  { strip3, 0, 14, 1, true } //6 rightFront
+  { strip1, 0, 32, 1, true }, //0 groundEffect
+  { strip1, 32, 16, 1, true }, //1 leftSide
+  { strip1, 48, 14, -1, true }, //2 leftTail
+  { strip1, 62, 14, 1, true }, //3 rightTail
+  { strip1, 76, 16, -1, true }, //4 rightSide
+  { strip2, 0, 15, 1, true }, //5 leftFront
+  { strip3, 0, 15, 1, true } //6 rightFront
 };
 
 #define hornPin 12
@@ -219,11 +219,11 @@ void doTailLightsAnimation() {
   if (currentMillis - tlPreviousMillis >= tlDelay) {
     if (strips[2].writable && strips[3].writable) {
       //We can do animation...
-      fadeToBlackBy( strips[2].strip, strips[2].endIndex, 40);
-      int pos = beatsin16( 13, strips[2].startIndex, strips[2].endIndex - 1 );
+      fadeToBlackBy( strips[2].strip, strips[2].count, 40);
+      int pos = beatsin16( 13, strips[2].startIndex, strips[2].startIndex + strips[2].count - 1);
       strips[2].strip[pos] += CRGB::Red;
-      fadeToBlackBy( strips[3].strip, strips[3].endIndex, 40);
-      int pos2 = beatsin16( 13, strips[3].startIndex, strips[3].endIndex - 1 );
+      fadeToBlackBy( strips[3].strip, strips[3].count, 40);
+      int pos2 = beatsin16( 13, strips[3].startIndex, strips[3].startIndex + strips[3].count - 1 );
       strips[3].strip[pos2] += CRGB::Red;
     } else {
       //If we cant do animation, black out any strips that are still writable.
@@ -383,7 +383,7 @@ void allOff() {
 
 //Given an led strip, set all of its pixels to the given color
 void solidColor(stripProps &stripProps, CRGB color) {
-  for (int i = stripProps.startIndex; i < stripProps.endIndex; i++) { //TODO add count direction
+  for (int i = stripProps.startIndex; i < stripProps.startIndex + stripProps.count - 1; i++) { //TODO add count direction
     stripProps.strip[i] = color;
   } 
 }
@@ -406,7 +406,7 @@ void off(stripProps &strip)
 void rainbow(stripProps &strip) 
 {
   // FastLED's built-in rainbow generator
-  fill_rainbow( strip.strip, strip.endIndex, gHue, 7);
+  fill_rainbow( strip.strip, strip.count, gHue, 7);
 }
 
 void rainbowWithGlitter(stripProps &strip) 
@@ -419,23 +419,23 @@ void rainbowWithGlitter(stripProps &strip)
 void addGlitter( stripProps &strip, fract8 chanceOfGlitter) 
 {
   if( random8() < chanceOfGlitter) {
-    strip.strip[ random16(strip.endIndex) ] += CRGB::White;
+    strip.strip[ random16(strip.startIndex, strip.startIndex + strip.count - 1) ] += CRGB::White;
   }
 }
 
 void confetti(stripProps &strip) 
 {
   // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( strip.strip, strip.endIndex, 10);
-  int pos = random16(strip.endIndex);
+  fadeToBlackBy( strip.strip, strip.count, 10);
+  int pos = random16(strip.startIndex, strip.startIndex + strip.count - 1);
   strip.strip[pos] += CHSV( gHue + random8(64), 200, 255);
 }
 
 void sinelon(stripProps &strip)
 {
   // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( strip.strip, strip.endIndex, 20);
-  int pos = beatsin16( 13, 0, strip.endIndex - 1 );
+  fadeToBlackBy( strip.strip, strip.count, 20);
+  int pos = beatsin16( 13, strip.startIndex, strip.startIndex + strip.count - 1 );
   strip.strip[pos] += CHSV( gHue, 255, 192);
 }
 
@@ -445,17 +445,17 @@ void bpm(stripProps &strip)
   uint8_t BeatsPerMinute = 62;
   CRGBPalette16 palette = PartyColors_p;
   uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < strip.endIndex; i++) { //9948
+  for( int i = 0; i < strip.startIndex + strip.count - 1; i++) { //9948
     strip.strip[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
   }
 }
 
 void juggle(stripProps &strip) {
   // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( strip.strip, strip.endIndex, 20);
+  fadeToBlackBy( strip.strip, strip.count, 20);
   byte dothue = 0;
   for( int i = 0; i < 8; i++) {
-    strip.strip[beatsin16( i+7, 0, strip.endIndex - 1 )] |= CHSV(dothue, 200, 255);
+    strip.strip[beatsin16( i+7, strip.startIndex, strip.startIndex + strip.count - 1 )] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
 }
