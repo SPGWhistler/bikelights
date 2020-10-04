@@ -36,18 +36,19 @@ CRGB strip1[92];
 CRGB strip2[15];
 CRGB strip3[15];
 stripProps strips[7] = {
-  { strip1, 0, 31, 1, true }, //0 groundEffect
-  { strip1, 32, 47, 1, true }, //1 leftSide
-  { strip1, 48, 61, -1, true }, //2 leftTail
-  { strip1, 62, 75, 1, true }, //3 rightTail
-  { strip1, 76, 91, -1, true }, //4 rightSide
-  { strip2, 0, 14, 1, true }, //5 leftFront
-  { strip3, 0, 14, 1, true } //6 rightFront
+  { strip1, 0, 32, 1, true }, //0 groundEffect
+  { strip1, 32, 48, 1, true }, //1 leftSide
+  { strip1, 48, 62, -1, true }, //2 leftTail
+  { strip1, 62, 76, 1, true }, //3 rightTail
+  { strip1, 76, 92, -1, true }, //4 rightSide
+  { strip2, 0, 15, 1, true }, //5 leftFront
+  { strip3, 0, 15, 1, true } //6 rightFront
 };
 
 #define hornPin 12
 
 boolean hornOn = false;
+boolean patternOn = false;
 boolean updated = false;
 int debounceDelay = 50;
 unsigned long currentMillis = 0;
@@ -66,6 +67,9 @@ unsigned long tlPreviousMillis = 0;
 unsigned int tlDelay = 50;
 unsigned long slPreviousMillis = 0;
 unsigned int slDelay = 50;
+unsigned long testPreviousMillis = 0;
+unsigned int testDelay = 1000;
+unsigned int testStep = 0;
 
 void setup() {
   for (int i = 0; i < (sizeof(buttons) / sizeof(buttons[0])); i++) {
@@ -81,7 +85,7 @@ void setup() {
   FastLED.addLeds<WS2812, mainLedPin, GRB>(strip1, 92);
   FastLED.addLeds<WS2812, leftFrontLedPin, GRB>(strip2, 15);
   FastLED.addLeds<WS2812, rightFrontLedPin, GRB>(strip3, 15);
-  //FastLED.setMaxPowerInMilliWatts(500);
+  FastLED.setMaxPowerInMilliWatts(500);
   allOff();
   FastLED.show();
   delay(3000);
@@ -97,8 +101,38 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 void loop() {
   currentMillis = millis();
   readButtons();
-  doAnimationLoop();
-  doHorn();
+  //doAnimationLoop();
+  //doHorn();
+  doTest();
+}
+
+void doTest() {
+  if (currentMillis - testPreviousMillis >= testDelay) {
+    allOff();
+    if (brakesOn) {
+      solidColor(strips[1], CRGB::Red);
+      solidColor(strips[2], CRGB::Red);
+      solidColor(strips[3], CRGB::Red);
+      solidColor(strips[4], CRGB::Red);
+    }
+    if (leftBlinkerOn) {
+      solidColor(strips[1], CRGB::Orange);
+      solidColor(strips[2], CRGB::Orange);
+    }
+    if (rightBlinkerOn) {
+      solidColor(strips[3], CRGB::Orange);
+      solidColor(strips[4], CRGB::Orange);
+    }
+    if (headLightOn) {
+      solidColor(strips[5], CRGB::White);
+      solidColor(strips[6], CRGB::White);
+    }
+    if (patternOn) {
+      solidColor(strips[0], CRGB::Green);
+    }
+    FastLED.show();
+    testPreviousMillis = currentMillis;
+  }
 }
 
 void doHorn() {
@@ -131,12 +165,14 @@ void readButtons() {
             break;
           case 4: //toggle pattern
             nextPattern();
+            patternOn = true;
             break;
           case 5: //headlight
             headLightOn = true;
             digitalWrite(headLightButtonLed, HIGH);
             break;
           case 6: //?
+            brakesOn = true;
             break;
         }
       } else if (buttons[i].currentState == HIGH && buttons[i].previousState == LOW) {
@@ -157,12 +193,14 @@ void readButtons() {
             hornOn = false;
             break;
           case 4: //toggle pattern
+            patternOn = false;
             break;
           case 5: //headlight
             headLightOn = false;
             digitalWrite(headLightButtonLed, LOW);
             break;
           case 6: //?
+            brakesOn = false;
             break;
         }
       } //else button was in same state for multiple reads, ignore
