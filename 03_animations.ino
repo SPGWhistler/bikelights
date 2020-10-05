@@ -17,27 +17,29 @@ void doGroundEffectAnimation() {
 }
 
 void doTailLightsAnimation() {
-  /*
   if (currentMillis - tlPreviousMillis >= tlDelay) {
     if (strips[2].writable && strips[3].writable) {
       //We can do animation...
-      fadeToBlackBy( strips[2].strip, strips[2].endIndex, 40);
-      int pos = beatsin16( 13, strips[2].startIndex, strips[2].endIndex - 1 );
+      for (int i = strips[2].offset; i < strips[2].offset + strips[2].count; i++) {
+        strips[2].strip[i].fadeToBlackBy(70);
+      }
+      int pos = beatsin16( 30, strips[2].offset, (strips[2].offset + strips[2].count) - 1 );
       strips[2].strip[pos] += CRGB::Red;
-      fadeToBlackBy( strips[3].strip, strips[3].endIndex, 40);
-      int pos2 = beatsin16( 13, strips[3].startIndex, strips[3].endIndex - 1 );
-      strips[3].strip[pos2] += CRGB::Red;
+      for (int i = strips[3].offset; i < strips[3].offset + strips[3].count; i++) {
+        strips[3].strip[i].fadeToBlackBy(70);
+      }
+      pos = beatsin16( 30, strips[3].offset, (strips[3].offset + strips[3].count) - 1 );
+      strips[3].strip[pos] += CRGB::Red;
     } else {
       //If we cant do animation, black out any strips that are still writable.
       if (strips[2].writable) {
         solidColor(strips[2], CRGB::Black);
       } else if (strips[3].writable) {
-        solidColor(strips[3], CRGB::Black);
+        //solidColor(strips[3], CRGB::Black);
       }
     }
     tlPreviousMillis = currentMillis;
   }
-  */
 }
 
 void doSideLightsAnimation() {

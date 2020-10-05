@@ -64,11 +64,11 @@ boolean headLightOn = false;
 unsigned long gfPreviousMillis = 0;
 unsigned int gfDelay = 50;
 unsigned long tlPreviousMillis = 0;
-unsigned int tlDelay = 50;
+unsigned int tlDelay = 25;
 unsigned long slPreviousMillis = 0;
 unsigned int slDelay = 50;
 unsigned long testPreviousMillis = 0;
-unsigned int testDelay = 1000;
+unsigned int testDelay = 50;
 unsigned int testStep = 0;
 
 void setup() {
@@ -103,7 +103,7 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 void loop() {
   currentMillis = millis();
   readButtons();
-  //doAnimationLoop();
+  doAnimationLoop();
   //doHorn();
-  doTest();
+  //doTest();
 }
