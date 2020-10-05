@@ -29,14 +29,12 @@ void doTest() {
 }
 
 void doAnimationLoop() {
-  updated = false;
   /*
   First, do high priority functions, in order of least to highest:
   Any strips written to by these functions should be locked.
   But, these functions must not obey that lock.
   */
   if (currentMillis - hpPreviousMillis >= hpDelay) {
-    updated = true;
     doHeadLightAnimation();
     doBrakesAnimation();
     doBlinkerAnimation();
@@ -49,8 +47,6 @@ void doAnimationLoop() {
   */
   //doGroundEffectAnimation();
   doTailLightsAnimation();
-  //doSideLightsAnimation();
-  //if (updated) {
-    FastLED.show();
-  //}
+  doSideLightsAnimation();
+  FastLED.show();
 }

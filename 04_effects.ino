@@ -58,14 +58,28 @@ void bpm(stripProps &strip)
     strip.strip[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
   }
 }
-
-void juggle(stripProps &strip) {
-  // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( strip.strip, strip.endIndex, 20);
-  byte dothue = 0;
-  for( int i = 0; i < 8; i++) {
-    strip.strip[beatsin16( i+7, 0, strip.endIndex - 1 )] |= CHSV(dothue, 200, 255);
-    dothue += 32;
-  }
-}
 */
+byte hues[4] = {
+  random8(),
+  random8(),
+  random8(),
+  random8()
+};
+unsigned int count = 0;
+void juggle(stripProps &stripProps) {
+  // eight colored dots, weaving in and out of sync with each other
+  fadeOffBy(stripProps, 150);
+  //byte dothue = random8();
+  for( int i = 0; i < 4; i++) {
+    stripProps.strip[beatsin16( i+30, stripProps.offset, (stripProps.offset + stripProps.count) - 1 )] |= CHSV(hues[i], 200, 255);
+    //dothue = random8();
+  }
+  if (count > 100) {
+    hues[0] = random8();
+    hues[1] = random8();
+    hues[2] = random8();
+    hues[3] = random8();
+    count = 0;
+  }
+  count++;
+}
