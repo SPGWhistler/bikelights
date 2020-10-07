@@ -45,8 +45,8 @@ void doAnimationLoop() {
   These must check each strip's locked state before writing to it.
   These must obey that lock.
   */
-  //doGroundEffectAnimation();
   doTailLightsAnimation();
   doSideLightsAnimation();
+  doGroundEffectAnimation();
   FastLED.show();
 }

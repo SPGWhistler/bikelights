@@ -13,14 +13,14 @@ buttonProps buttons[7] = {
   { LOW, LOW, 0, 4 }, //horn (momentary)
   { LOW, LOW, 0, 5 }, //patternToggle (momentary)
   { LOW, LOW, 0, 7 }, //headlight (toggle)
-  { LOW, LOW, 0, 8 } //?
+  { LOW, LOW, 0, 8 } //? temporary brakes
 };
-int leftBlinkerButtonLed = A2;
-int rightBlinkerButtonLed = A5;
+int brakesToggleButtonLed = A0;
 int headLightButtonLed = A1;
-int patternToggleButtonLed = A3;
-int unused1ButtonLed = A0;
-int unused2ButtonLed = A4;
+int leftBlinkerButtonLed = A2;
+int hornToggleButtonLed = A3;
+int patternToggleButtonLed = A4;
+int rightBlinkerButtonLed = A5;
 
 #define mainLedPin 9
 #define leftFrontLedPin 10
@@ -62,7 +62,7 @@ unsigned int hpDelay = 50;
 boolean brakesOn = false;
 boolean headLightOn = false;
 unsigned long gfPreviousMillis = 0;
-unsigned int gfDelay = 50;
+unsigned int gfDelay = 100;
 unsigned long tlPreviousMillis = 0;
 unsigned int tlDelay = 25;
 unsigned long slPreviousMillis = 0;
@@ -85,7 +85,7 @@ void setup() {
   FastLED.addLeds<WS2812, mainLedPin, GRB>(strip1, 92);
   FastLED.addLeds<WS2812, leftFrontLedPin, GRB>(strip2, 15);
   FastLED.addLeds<WS2812, rightFrontLedPin, GRB>(strip3, 15);
-  FastLED.setMaxPowerInMilliWatts(500);
+  //FastLED.setMaxPowerInMilliWatts(500);
   allOff();
   FastLED.show();
   delay(3000);

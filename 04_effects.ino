@@ -12,11 +12,6 @@ void off(stripProps &strip)
   solidColor(strip, CRGB::Black);
 }
 
-void rainbow(stripProps &strip) 
-{
-  // FastLED's built-in rainbow generator
-  fill_rainbow( strip.strip, strip.endIndex, gHue, 7);
-}
 
 void rainbowWithGlitter(stripProps &strip) 
 {
@@ -59,27 +54,61 @@ void bpm(stripProps &strip)
   }
 }
 */
-byte hues[4] = {
-  random8(),
-  random8(),
-  random8(),
-  random8()
-};
-unsigned int count = 0;
-void juggle(stripProps &stripProps) {
-  // eight colored dots, weaving in and out of sync with each other
-  fadeOffBy(stripProps, 150);
-  //byte dothue = random8();
-  for( int i = 0; i < 4; i++) {
-    stripProps.strip[beatsin16( i+30, stripProps.offset, (stripProps.offset + stripProps.count) - 1 )] |= CHSV(hues[i], 200, 255);
-    //dothue = random8();
+byte hues[8];
+unsigned int beatsStep = 0;
+void juggle(stripProps &stripProps, unsigned int count, unsigned int bpm, unsigned int fade) {
+  fadeOffBy(stripProps, fade);
+  for( int i = 0; i < count; i++) {
+    if (beatsStep == 0) {
+      hues[i] = random8();
+    }
+    stripProps.strip[beatsin88( (i+bpm)*256, stripProps.offset, (stripProps.offset + stripProps.count) - 1 )] |= CHSV(hues[i], 255, 255);
   }
-  if (count > 100) {
-    hues[0] = random8();
-    hues[1] = random8();
-    hues[2] = random8();
-    hues[3] = random8();
-    count = 0;
+  beatsStep++;
+  if (beatsStep > 100) {
+    beatsStep = 0;
   }
-  count++;
+}
+
+int tcrJ = 0;
+int tcrQ = 0;
+void theaterChaseRainbow(stripProps &stripProps) {
+  byte *c;
+  solidColor(stripProps, CRGB::Black);
+  for (int i = stripProps.offset; i < stripProps.count; i=i+3) {
+    c = Wheel( (i+tcrJ) % 255);
+    if (i + tcrQ < stripProps.count) {
+      stripProps.strip[i + tcrQ] = CRGB(*c, *(c+1), *(c+2));
+    }
+  }
+  tcrJ++;
+  tcrQ++;
+  if (tcrJ > 255) {
+    tcrJ = 0;
+  }
+  if (tcrQ > 2) {
+    tcrQ = 0;
+  }
+}
+
+byte * Wheel(byte WheelPos) {
+  static byte c[3];
+ 
+  if(WheelPos < 85) {
+   c[0]=WheelPos * 3;
+   c[1]=255 - WheelPos * 3;
+   c[2]=0;
+  } else if(WheelPos < 170) {
+   WheelPos -= 85;
+   c[0]=255 - WheelPos * 3;
+   c[1]=0;
+   c[2]=WheelPos * 3;
+  } else {
+   WheelPos -= 170;
+   c[0]=0;
+   c[1]=WheelPos * 3;
+   c[2]=255 - WheelPos * 3;
+  }
+
+  return c;
 }

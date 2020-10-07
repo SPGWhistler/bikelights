@@ -1,19 +1,14 @@
 void doGroundEffectAnimation() {
-  /*
-  if (currentMillis - gfPreviousMillis >= gfDelay && strips[0].writable) {
-    // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber](strips[0]);
-    if (gCurrentPatternNumber == 0) {
-      digitalWrite(patternToggleButtonLed, LOW);
-    } else {
-      digitalWrite(patternToggleButtonLed, HIGH);
+  if (currentMillis - gfPreviousMillis >= gfDelay) {
+    if (strips[0].writable && patternOn == true) {
+      //juggle(strips[0], 6, 10, 150);
+      theaterChaseRainbow(strips[0]);
     }
-    // do some periodic updates
-    EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-    //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
+    if (strips[0].writable && patternOn == false) {
+      solidColor(strips[0], CRGB::Black);
+    }
     gfPreviousMillis = currentMillis;
   }
-  */
 }
 
 void doTailLightsAnimation() {
@@ -41,12 +36,10 @@ void doTailLightsAnimation() {
 
 void doSideLightsAnimation() {
   if (currentMillis - slPreviousMillis >= slDelay) {
-    if (strips[1].writable && strips[4].writable) {
+    if (strips[1].writable && strips[4].writable && patternOn == true) {
       //We can do animation...
-      //gPatterns[gCurrentPatternNumber](strips[1]);
-      //gPatterns[gCurrentPatternNumber](strips[4]);
-      juggle(strips[1]);
-      juggle(strips[4]);
+      juggle(strips[1], 4, 30, 150);
+      juggle(strips[4], 4, 30, 150);
     } else {
       //If we cant do animation, black out any strips that are still writable.
       if (strips[1].writable) {
